@@ -12,6 +12,7 @@
 
     dependencies = [
         "numpy>=2.5.3",
+        "opencv-python>=5.0.0.93",
         "pyside6>=6.11.2",
     ]
 
