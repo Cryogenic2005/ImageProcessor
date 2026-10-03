@@ -1,0 +1,55 @@
+[project]
+    name = "imageprocessor"
+    version = "0.1.0"
+    description = "Live image processing "
+    readme = "README.md"
+    requires-python = ">=3.12, <3.13"
+
+    authors = [
+        {name = "Le Nguyen Bao Huy", email = "leng0041@e.ntu.edu.sg"},
+    ]
+    license = "MIT"
+
+    dependencies = [
+        "numpy>=2.5.3",
+        "pyside6>=6.11.2",
+    ]
+
+    [project.gui-scripts]
+        app = "imageprocessor.main:run"
+
+[dependency-groups]
+    dev = [
+        "pyinstaller>=6.22.3",
+        "pyright>=1.1.414",
+        "pytest>=9.1.1",
+        "pytest-qt>=4.5.0",
+    ]
+
+[build-system]
+    requires = ["uv_build >= 0.12.17, <0.13.0"]
+    build-backend = "uv_build"
+
+[tool.uv]
+    package = true
+
+[tool.ruff]
+    line-length = 100
+    target-version = "py312"
+
+    [tool.ruff.lint]
+        select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+        ignore = ["E501", "E741", "UP032", "UP037", "B905", "UP032", "SIM102"]
+
+[tool.pyright]
+    pythonVersion = "3.12"
+    include = ["src"]
+    typeCheckingMode = "basic"
+
+    reportImportCycles = true
+    reportPrivateUsage = true
+
+[tool.pytest.ini_options]
+    addopts = ["--import-mode=importlib", "-ra", "-q"]
+    testpaths = ["tests"]
+    pythonpath = ["src"]
