@@ -1,4 +1,8 @@
+from typing import cast
+
 import numpy as np
+
+from imageprocessor.types import Point
 
 from .base import BaseTransform, Field
 from .transform_registry import registry
@@ -18,37 +22,17 @@ class Crop(BaseTransform):
     def getFields(self):
         """Return the fields for cropping."""
         return {
-            "X": Field[int](
-                field_type=int,
-                default=0,
-                min_val=0,
-                max_val=None,
-                description="Left coordinate",
-                tooltip="X",
+            "Top Right": Field[Point](
+                field_type=Point,
+                default=Point(100.0, 0.0),
+                description="Top-right corner of the crop area",
+                tooltip="X, Y",
             ),
-            "Y": Field[int](
-                field_type=int,
-                default=0,
-                min_val=0,
-                max_val=None,
-                description="Top coordinate",
-                tooltip="Y",
-            ),
-            "Width": Field[int](
-                field_type=int,
-                default=100,
-                min_val=1,
-                max_val=None,
-                description="Crop width",
-                tooltip="Width",
-            ),
-            "Height": Field[int](
-                field_type=int,
-                default=100,
-                min_val=1,
-                max_val=None,
-                description="Crop height",
-                tooltip="Height",
+            "Bottom Left": Field[Point](
+                field_type=Point,
+                default=Point(0.0, 100.0),
+                description="Bottom-left corner of the crop area",
+                tooltip="X, Y",
             ),
         }
 
@@ -56,18 +40,14 @@ class Crop(BaseTransform):
         """Set the crop fields."""
         for key, value in kwargs.items():
             match key:
-                case "X":
-                    self._x = int(value)
-
-                case "Y":
-                    self._y = int(value)
-
-                case "Width":
-                    self._width = int(value)
-
-                case "Height":
-                    self._height = int(value)
-
+                case "Top Right":
+                    value = cast(Point, value)
+                    self._x = int(value.x)
+                    self._y = int(value.y)
+                case "Bottom Left":
+                    value = cast(Point, value)
+                    self._width = int(value.x) - self._x
+                    self._height = int(value.y) - self._y
                 case _:
                     raise ValueError(f"Unknown field: {key}")
 
