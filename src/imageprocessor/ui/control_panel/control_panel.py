@@ -17,6 +17,11 @@ class ControlPanel(QScrollArea):
 
     transformsChanged = Signal()
 
+    # Outgoing
+    selectPointRequested = Signal()
+    # Incoming
+    selectPointCompleted = Signal(float, float)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -30,14 +35,16 @@ class ControlPanel(QScrollArea):
         layout.setSpacing(6)
 
         self._transform_list = TransformList()
-        self._transform_add = TransformAdd()
-
-        self._transform_add.transformAdded.connect(self._transform_list.onAddTransform)
         self._transform_list.transformsChanged.connect(self.transformsChanged)
+        self._transform_list.selectPointRequested.connect(self._onSelectPointRequested)
+        self.selectPointCompleted.connect(self._onSelectPointCompleted)
 
         delimiter = QFrame()
         delimiter.setFrameShape(QFrame.Shape.HLine)
         delimiter.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self._transform_add = TransformAdd()
+        self._transform_add.transformAdded.connect(self._transform_list.onAddTransform)
 
         layout.addWidget(self._transform_list)
         layout.addWidget(delimiter)
@@ -62,3 +69,16 @@ class ControlPanel(QScrollArea):
 
         self._transform_list.setEnabled(enabled)
         self._transform_add.setEnabled(enabled)
+
+    def _onSelectPointRequested(self):
+        """Handle the request to select a point on the image."""
+
+        self.toggleControls(False)
+        self.selectPointRequested.emit()
+
+    def _onSelectPointCompleted(self, x: float, y: float):
+        """Handle the completion of a point selection."""
+
+        self._transform_list.selectPointCompleted.emit(x, y)
+        self.toggleControls(True)
+        self.transformsChanged.emit()

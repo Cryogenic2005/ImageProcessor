@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor, QKeyEvent, QPainter, QPixmap, QWheelEvent
 from PySide6.QtWidgets import (
     QFrame,
@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
 
 
 class ZoomableGraphicsView(QGraphicsView):
+    pointClicked = Signal(float, float)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -22,6 +24,7 @@ class ZoomableGraphicsView(QGraphicsView):
         self._zoom = 1.0
         self._zoom_step = 1.25
         self._fitted = True
+        self._point_selection_enabled = False
 
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setSizeAdjustPolicy(QGraphicsView.SizeAdjustPolicy.AdjustIgnored)
@@ -39,7 +42,17 @@ class ZoomableGraphicsView(QGraphicsView):
             QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform
         )
 
-        self._zoom_cursor = self._make_zoom_cursor()
+        self._zoom_cursor = _make_zoom_cursor()
+
+    def setPointSelectionEnabled(self, enabled: bool):
+        """Enable or disable image point selection."""
+
+        self._point_selection_enabled = enabled
+
+        if enabled:
+            self.viewport().setCursor(Qt.CursorShape.CrossCursor)
+        else:
+            self.viewport().setCursor(self._zoom_cursor)
 
     # ------------------------------------------------------------------
     # region: Image Handling
@@ -67,7 +80,10 @@ class ZoomableGraphicsView(QGraphicsView):
             return
 
         self.resetTransform()
-        self.fitInView(self._pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
+        self.fitInView(
+            self._pixmap_item,
+            Qt.AspectRatioMode.KeepAspectRatio,
+        )
         self._zoom = self.transform().m11()
         self._fitted = True
 
@@ -75,15 +91,12 @@ class ZoomableGraphicsView(QGraphicsView):
         if self._pixmap_item.pixmap().isNull():
             return
 
-        # The point currently at the CENTER of the viewport.
         center = self.viewport().rect().center()
         scene_center = self.mapToScene(center)
 
         self._fitted = False
         self._zoom *= factor
         self.scale(factor, factor)
-
-        # Restore that same scene point to the viewport center.
         self.centerOn(scene_center)
 
     # endregion
@@ -107,7 +120,11 @@ class ZoomableGraphicsView(QGraphicsView):
         super().keyPressEvent(event)
 
     def enterEvent(self, event):
-        self.viewport().setCursor(self._zoom_cursor)
+        if self._point_selection_enabled:
+            self.viewport().setCursor(Qt.CursorShape.CrossCursor)
+        else:
+            self.viewport().setCursor(self._zoom_cursor)
+
         super().enterEvent(event)
 
     def leaveEvent(self, event):
@@ -115,8 +132,16 @@ class ZoomableGraphicsView(QGraphicsView):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event):
+        if self._point_selection_enabled and event.button() == Qt.MouseButton.LeftButton:
+            scene_position = self.mapToScene(event.position().toPoint())
+
+            self.setPointSelectionEnabled(False)
+            self.pointClicked.emit(scene_position.x(), scene_position.y())
+
+            event.accept()
+            return
+
         if event.button() == Qt.MouseButton.LeftButton and not self._pixmap_item.pixmap().isNull():
-            # If Ctrl is held, zoom out.
             if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
                 self._zoomBy(1.0 / self._zoom_step)
             else:
@@ -130,7 +155,6 @@ class ZoomableGraphicsView(QGraphicsView):
     def wheelEvent(self, event: QWheelEvent):
         delta = event.angleDelta()
 
-        # Ctrl + wheel = zoom.
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if delta.y() > 0:
                 self._zoomBy(self._zoom_step)
@@ -140,7 +164,6 @@ class ZoomableGraphicsView(QGraphicsView):
             event.accept()
             return
 
-        # Shift + wheel = horizontal scrolling.
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             horizontal = self.horizontalScrollBar()
 
@@ -150,7 +173,6 @@ class ZoomableGraphicsView(QGraphicsView):
             event.accept()
             return
 
-        # Normal wheel = vertical scrolling.
         super().wheelEvent(event)
 
     def resizeEvent(self, event):
@@ -160,27 +182,27 @@ class ZoomableGraphicsView(QGraphicsView):
             self._fit()
 
     # endregion
-    # ------------------------------------------------------------------
+    # ----------------------------------------------------------------
 
-    @staticmethod
-    def _make_zoom_cursor() -> QCursor:
-        pixmap = QPixmap(24, 24)
-        pixmap.fill(Qt.GlobalColor.transparent)
 
-        painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+def _make_zoom_cursor() -> QCursor:
+    pixmap = QPixmap(24, 24)
+    pixmap.fill(Qt.GlobalColor.transparent)
 
-        pen = painter.pen()
-        pen.setWidth(2)
-        painter.setPen(pen)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        painter.drawEllipse(2, 2, 13, 13)
-        painter.drawLine(13, 13, 21, 21)
+    pen = painter.pen()
+    pen.setWidth(2)
+    painter.setPen(pen)
 
-        # Plus.
-        painter.drawLine(8, 5, 8, 12)
-        painter.drawLine(5, 8, 11, 8)
+    painter.drawEllipse(2, 2, 13, 13)
+    painter.drawLine(13, 13, 21, 21)
 
-        painter.end()
+    # Plus.
+    painter.drawLine(8, 5, 8, 12)
+    painter.drawLine(5, 8, 11, 8)
 
-        return QCursor(pixmap, 0, 0)
+    painter.end()
+
+    return QCursor(pixmap, 0, 0)

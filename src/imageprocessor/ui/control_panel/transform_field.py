@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSpinBox,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -23,12 +24,14 @@ class TransformField(QWidget):
     """A widget for a single transform field."""
 
     changed = Signal()
+    selectPointRequested = Signal()
 
     def __init__(self, field_name: str, field: "Field", transform: "BaseTransform"):
         super().__init__()
 
         self._field_name = field_name
         self._transform = transform
+        self._pointSelectRequested = False
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -93,15 +96,19 @@ class TransformField(QWidget):
         elif field.field_type is types.Point:
             field_input = QWidget()
 
-            x_input = QDoubleSpinBox()
+            self._x_input = QDoubleSpinBox()
+            x_input = self._x_input
             x_input.setValue(field.default.x)
+            x_input.setRange(-1e6, 1e6)
             x_input.setDecimals(2)
             x_input.valueChanged.connect(
                 lambda value: self._setTransformField(types.Point(value, y_input.value()))
             )
 
-            y_input = QDoubleSpinBox()
+            self._y_input = QDoubleSpinBox()
+            y_input = self._y_input
             y_input.setValue(field.default.y)
+            y_input.setRange(-1e6, 1e6)
             y_input.setDecimals(2)
             y_input.valueChanged.connect(
                 lambda value: self._setTransformField(types.Point(x_input.value(), value))
@@ -114,22 +121,36 @@ class TransformField(QWidget):
             select_point_button.setIcon(self._drawSelectPointButton())
             select_point_button.clicked.connect(self._onSelectPointRequested)
 
+            coords_layout = QVBoxLayout()
+            coords_layout.setContentsMargins(0, 0, 0, 0)
+            coords_layout.addWidget(x_input)
+            coords_layout.addWidget(y_input)
+
             layout = QHBoxLayout(field_input)
             layout.setContentsMargins(0, 0, 0, 0)
-            layout.addWidget(x_input)
-            layout.addWidget(y_input)
             layout.addWidget(select_point_button)
+            layout.addLayout(coords_layout)
 
         else:
             raise TypeError(f"Unsupported transform field type: {field.field_type}")
 
         return field_input
 
+    def onSelectPointCompleted(self, x: float, y: float):
+        """Set the point input values."""
+
+        if not self._pointSelectRequested:
+            return
+
+        self._pointSelectRequested = False
+        self._x_input.setValue(x)
+        self._y_input.setValue(y)
+
     def _onSelectPointRequested(self):
-        """Emit a signal to request point selection on the image."""
-        raise NotImplementedError(
-            "Point selection request handling should be implemented in the parent widget."
-        )
+        """Request that a point be selected on the image."""
+
+        self._pointSelectRequested = True
+        self.selectPointRequested.emit()
 
     def _drawSelectPointButton(self):
         """Draw a simple icon for the select point button."""

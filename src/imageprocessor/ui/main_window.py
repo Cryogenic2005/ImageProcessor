@@ -32,6 +32,11 @@ class MainWindow(QMainWindow):
         self._control_panel.toggleControls(False)  # No image initially, so disable controls
         self._control_panel.transformsChanged.connect(self._onTransformsChanged)
 
+        self._control_panel.selectPointRequested.connect(self._image_preview.requestPointSelection)
+        self._image_preview.selectPointCompleted.connect(
+            self._control_panel.selectPointCompleted.emit
+        )
+
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setHandleWidth(1)
         splitter.setStyleSheet("QSplitter::handle { background-color: transparent; }")

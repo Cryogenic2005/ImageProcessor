@@ -27,25 +27,25 @@ class PerspectiveProjection(BaseTransform):
                 field_type=Point,
                 default=Point(0.0, 0.0),
                 description="Top-left corner of the quadrilateral",
-                tooltip="X1, Y1",
+                tooltip="Top-left corner (X1, Y1)",
             ),
             "Corner 2": Field[Point](
                 field_type=Point,
                 default=Point(100.0, 0.0),
                 description="Top-right corner of the quadrilateral",
-                tooltip="X2, Y2",
+                tooltip="Top-right corner (X2, Y2)",
             ),
             "Corner 3": Field[Point](
                 field_type=Point,
                 default=Point(100.0, 100.0),
                 description="Bottom-right corner of the quadrilateral",
-                tooltip="X3, Y3",
+                tooltip="Bottom-right corner (X3, Y3)",
             ),
             "Corner 4": Field[Point](
                 field_type=Point,
                 default=Point(0.0, 100.0),
                 description="Bottom-left corner of the quadrilateral",
-                tooltip="X4, Y4",
+                tooltip="Bottom-left corner (X4, Y4)",
             ),
         }
 

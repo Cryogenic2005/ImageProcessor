@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QMessageBox, QVBoxLayout, QWidget
 
 from imageprocessor.transforms import registry
 from imageprocessor.transforms.base import BaseTransform
@@ -11,6 +11,11 @@ class TransformList(QWidget):
     """Ordered list of transform widgets."""
 
     transformsChanged = Signal()
+    # Outgoing
+    selectPointRequested = Signal()
+    # Incoming
+    selectPointCancelled = Signal()
+    selectPointCompleted = Signal(float, float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -29,6 +34,9 @@ class TransformList(QWidget):
         self._drop_placeholder = QFrame()
         self._drop_placeholder.setStyleSheet("background-color: #666666; border: none;")
         self._drop_placeholder.hide()
+
+        # Track whether the user is currently selecting a point on the image
+        self._selecting = False
 
     @property
     def transformWidgets(self) -> list[TransformWidget]:
@@ -52,6 +60,17 @@ class TransformList(QWidget):
         widget.removed.connect(lambda: self.removeTransform(widget))
         widget.dragStarted.connect(lambda: self._beginDrag(widget))
 
+        def _onSelectPointCompleted(x, y):
+            """Handle the completion of point selection."""
+            self._selecting = False
+            widget.onSelectPointCompleted(x, y)
+
+        # Outgoing
+        widget.selectPointRequested.connect(self._onSelectPointRequested)
+        # Incoming
+        self.selectPointCompleted.connect(_onSelectPointCompleted)
+        self.selectPointCancelled.connect(widget.onSelectPointCancelled)
+
         self._transform_widgets.append(widget)
         self._layout.addWidget(widget)
 
@@ -68,6 +87,9 @@ class TransformList(QWidget):
         widget.deleteLater()
 
         self.transformsChanged.emit()
+
+    # ===============================
+    # region: Drag-and-Drop Logic
 
     def dragEnterEvent(self, event):
         """Accept transform drag operations."""
@@ -188,3 +210,25 @@ class TransformList(QWidget):
                 return index
 
         return len(widgets)
+
+    # endregion
+    # ===============================
+
+    def _onSelectPointRequested(self):
+        """Handle the event when a transform requests to select a point on the image."""
+
+        if self._selecting:
+            # Display an error dialog to indicate that a point selection is already in progress
+
+            QMessageBox.warning(
+                self,
+                "Point Selection In Progress",
+                "You are already selecting a point for another field. "
+                "Please complete that selection before selecting a new point.",
+            )
+
+            self.selectPointCancelled.emit()
+            return
+
+        self._selecting = True
+        self.selectPointRequested.emit()
