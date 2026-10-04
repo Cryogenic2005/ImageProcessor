@@ -15,14 +15,11 @@ class TransformHeader(QFrame):
     foldClicked = Signal()
     enabledChanged = Signal(bool)
     removeClicked = Signal()
-    dragStarted = Signal()
-    dragMoved = Signal(QPoint)
-    dragFinished = Signal()
+    dragRequested = Signal()
 
     def __init__(self, name: str, parent=None):
         super().__init__(parent)
 
-        self._dragging = False
         self._drag_start_position = QPoint()
         self._expanded = True
 
@@ -53,7 +50,10 @@ class TransformHeader(QFrame):
 
         self._title = QLabel(name)
         self._title.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self._title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._title.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
         self._title.setStyleSheet("color: white; font-weight: bold; font-size: 12px;")
 
         self._remove_button = QPushButton("✕")
@@ -91,28 +91,23 @@ class TransformHeader(QFrame):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_start_position = event.globalPosition().toPoint()
+            self._drag_start_position = event.position().toPoint()
 
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if event.buttons() & Qt.MouseButton.LeftButton and not self._dragging:
-            position = event.globalPosition().toPoint()
+        if event.buttons() & Qt.MouseButton.LeftButton and not self._drag_start_position.isNull():
+            position = event.position().toPoint()
 
             if (position - self._drag_start_position).manhattanLength() >= 5:
-                self._dragging = True
-                self.grabMouse()
-                self.dragStarted.emit()
-
-        if self._dragging:
-            self.dragMoved.emit(event.globalPosition().toPoint())
+                self._drag_start_position = QPoint()
+                self.dragRequested.emit()
+                return
 
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
-            self._dragging = False
-            self.releaseMouse()
-            self.dragFinished.emit()
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start_position = QPoint()
 
         super().mouseReleaseEvent(event)

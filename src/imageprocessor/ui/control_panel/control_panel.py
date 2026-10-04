@@ -2,71 +2,63 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QScrollArea,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
-from imageprocessor.ui.control_panel.transform_add import TransformAdd
+from imageprocessor.transforms import BaseTransform
 
+from .transform_add import TransformAdd
 from .transform_list import TransformList
 
 
 class ControlPanel(QScrollArea):
+    """Control panel containing the transform pipeline."""
+
     transformsChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setWidgetResizable(True)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-
-        self.setMinimumWidth(220)
-        self.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.setMinimumWidth(200)
 
         content = QWidget()
-        content.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Maximum,
-        )
-        self.setWidget(content)
-
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
 
         self._transform_list = TransformList()
+        self._transform_add = TransformAdd()
+
+        self._transform_add.transformAdded.connect(self._transform_list.onAddTransform)
         self._transform_list.transformsChanged.connect(self.transformsChanged)
-        layout.addWidget(self._transform_list)
 
         delimiter = QFrame()
         delimiter.setFrameShape(QFrame.Shape.HLine)
-        delimiter.setFrameShadow(QFrame.Shadow.Raised)
-        layout.addWidget(delimiter)
+        delimiter.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self._add_transform = TransformAdd()
-        self._add_transform.transformAdded.connect(self._transform_list.onAddTransform)
-        layout.addWidget(self._add_transform)
+        layout.addWidget(self._transform_list)
+        layout.addWidget(delimiter)
+        layout.addWidget(self._transform_add)
+
+        self.setWidget(content)
 
     @property
-    def transforms(self):
+    def transforms(self) -> list[tuple[BaseTransform, bool]]:
         """Return the current transform pipeline."""
+
         return self._transform_list.transforms
 
     @property
     def transformWidgets(self):
-        """Return the current transform widgets."""
+        """Return the transform widgets in pipeline order."""
+
         return self._transform_list.transformWidgets
 
-    def toggleControls(self, enabled: bool | None = None):
-        """Enable or disable the controls in the control panel."""
+    def toggleControls(self, enabled: bool):
+        """Enable or disable transform controls."""
 
-        if enabled is None:
-            enabled = not self.isEnabled()
-        elif enabled == self.isEnabled():
-            return
-
-        self._add_transform.setEnabled(enabled)
         self._transform_list.setEnabled(enabled)
-        self.setEnabled(enabled)
+        self._transform_add.setEnabled(enabled)

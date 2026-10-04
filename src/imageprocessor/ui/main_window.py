@@ -22,28 +22,25 @@ class MainWindow(QMainWindow):
         self.resize(*size)
         self.showMaximized()
 
-        splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.setHandleWidth(1)
-        splitter.setStyleSheet("QSplitter::handle { background: palette(mid); }")
-
-        self.setCentralWidget(splitter)
-
         # =======================================
-        # region: Image Processing Core
+        # region: Core
 
         self._image_preview = ImagePreview(self)
         self._image_preview.imageLoaded.connect(self._onImageLoaded)
-        splitter.addWidget(self._image_preview)
 
         self._control_panel = ControlPanel(self)
         self._control_panel.toggleControls(False)  # No image initially, so disable controls
         self._control_panel.transformsChanged.connect(self._onTransformsChanged)
-        splitter.addWidget(self._control_panel)
 
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        splitter.setHandleWidth(1)
+        splitter.setStyleSheet("QSplitter::handle { background-color: transparent; }")
+        splitter.addWidget(self._image_preview)
+        splitter.addWidget(self._control_panel)
         splitter.setCollapsible(0, False)
         splitter.setCollapsible(1, True)
-
         splitter.setSizes([int(self.width() * 0.8), int(self.width() * 0.2)])
+        self.setCentralWidget(splitter)
 
         # endregion
         # =======================================

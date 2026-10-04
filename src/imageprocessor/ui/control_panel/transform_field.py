@@ -20,8 +20,14 @@ class TransformField(QWidget):
 
     changed = Signal()
 
-    def __init__(self, field_name: str, field: "Field", transform: "BaseTransform"):
+    def __init__(
+        self,
+        field_name: str,
+        field: "Field",
+        transform: "BaseTransform",
+    ):
         super().__init__()
+
         self._field_name = field_name
         self._transform = transform
 
@@ -49,7 +55,7 @@ class TransformField(QWidget):
             self.changed.emit()
 
     def _createFieldInput(self, field: "Field") -> QWidget:
-        """Create and configure the input widget for a transform field."""
+        """Create and configure the input widget."""
 
         if field.field_type is int:
             field_input = QSpinBox()

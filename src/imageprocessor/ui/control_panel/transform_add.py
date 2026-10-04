@@ -1,13 +1,18 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from imageprocessor.transforms import registry
 
 
 class TransformAdd(QWidget):
-    """
-    A widget that allows the user to add a new transform to the list of transforms.
-    """
+    """Widget for adding a new transform to the list."""
 
     transformAdded = Signal(str)
 
@@ -37,5 +42,6 @@ class TransformAdd(QWidget):
         layout.addLayout(add_layout)
 
     def addClicked(self) -> None:
-        """Emit the transformAdded signal with the selected transform name."""
+        """Emit the selected transform name."""
+
         self.transformAdded.emit(self._select_transform.currentText())
