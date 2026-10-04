@@ -80,6 +80,8 @@ class MainWindow(QMainWindow):
     def _onTransformsChanged(self):
         """Handle the event when the list of transforms changes."""
 
+        print("Transforms changed, applying to image...")
+
         np_image = self._image_preview.base_image
         for transform, enabled in self._control_panel.transforms:
             if enabled:
