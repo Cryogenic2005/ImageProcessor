@@ -36,18 +36,18 @@ class ControlPanel(QScrollArea):
         self.setWidget(content)
 
         layout = QVBoxLayout(content)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.transform_steps = QVBoxLayout()
-        self.transform_steps.setContentsMargins(6, 6, 6, 6)
-        self.transform_steps.setSpacing(8)
+        self.transform_steps.setContentsMargins(0, 0, 0, 0)
+        self.transform_steps.setSpacing(0)
         self.transform_steps.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(self.transform_steps)
 
-        delimiter = QWidget()
-        delimiter.setFixedHeight(1)
-        delimiter.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        delimiter.setStyleSheet("background-color: #c0c0c0;")
+        delimiter = QFrame()
+        delimiter.setFrameShape(QFrame.Shape.HLine)
+        delimiter.setFrameShadow(QFrame.Shadow.Raised)
         layout.addWidget(delimiter)
 
         title = QLabel("Add Transform Step")
@@ -56,6 +56,7 @@ class ControlPanel(QScrollArea):
         layout.addWidget(title)
 
         add_transform_layout = QHBoxLayout()
+        add_transform_layout.setContentsMargins(6, 6, 6, 6)
         layout.addLayout(add_transform_layout)
 
         self._select_transform = QComboBox()
@@ -101,12 +102,6 @@ class ControlPanel(QScrollArea):
         transform_widget.changed.connect(self.transformsChanged)
         transform_widget.removed.connect(lambda: self._removeTransform(transform_widget))
 
-        if self._transform_widgets:
-            hline = QFrame()
-            hline.setFrameShape(QFrame.Shape.HLine)
-            hline.setFrameShadow(QFrame.Shadow.Sunken)
-            self.transform_steps.addWidget(hline)
-
         self._transform_widgets.append(transform_widget)
         self.transform_steps.addWidget(transform_widget)
 
@@ -115,34 +110,10 @@ class ControlPanel(QScrollArea):
     def _removeTransform(self, transform_widget: TransformWidget):
         """Remove a transform and its corresponding UI."""
 
-        widget_index = self.transform_steps.indexOf(transform_widget)
-
-        if widget_index < 0:
-            raise ValueError("Transform widget not found.")
-
         transform_index = self._transform_widgets.index(transform_widget)
-
         del self._transform_widgets[transform_index]
 
         self.transform_steps.removeWidget(transform_widget)
         transform_widget.deleteLater()
-
-        if widget_index > 0:
-            separator_item = self.transform_steps.takeAt(widget_index - 1)
-
-            if separator_item is not None:
-                separator_widget = separator_item.widget()
-
-                if separator_widget is not None:
-                    separator_widget.deleteLater()
-
-        elif self._transform_widgets:
-            separator_item = self.transform_steps.takeAt(0)
-
-            if separator_item is not None:
-                separator_widget = separator_item.widget()
-
-                if separator_widget is not None:
-                    separator_widget.deleteLater()
 
         self.transformsChanged.emit()
