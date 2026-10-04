@@ -32,9 +32,12 @@ class MainWindow(QMainWindow):
         # region: Image Processing Core
 
         self._image_preview = ImagePreview(self)
+        self._image_preview.imageLoaded.connect(self._onImageLoaded)
         splitter.addWidget(self._image_preview)
 
         self._control_panel = ControlPanel(self)
+        self._control_panel.toggleControls(False)  # No image initially, so disable controls
+        self._control_panel.transformsChanged.connect(self._onTransformsChanged)
         splitter.addWidget(self._control_panel)
 
         splitter.setCollapsible(0, False)
@@ -65,3 +68,20 @@ class MainWindow(QMainWindow):
     def _toggleFullscreen(self):
         """Toggle between fullscreen and normal window mode."""
         self.showFullScreen() if not self.isFullScreen() else self.showNormal()
+
+    def _onImageLoaded(self):
+        """Handle the event when a new image is loaded."""
+
+        self._control_panel.toggleControls(True)
+
+        if len(self._control_panel.transforms) > 0:
+            self._onTransformsChanged()
+
+    def _onTransformsChanged(self):
+        """Handle the event when the list of transforms changes."""
+
+        np_image = self._image_preview.base_image
+        for transform in self._control_panel.transforms:
+            np_image = transform(np_image)
+
+        self._image_preview.curr_image = np_image

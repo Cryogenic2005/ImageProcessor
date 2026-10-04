@@ -13,8 +13,12 @@
     dependencies = [
         "numpy>=2.5.3",
         "opencv-python>=5.0.0.93",
+        "pillow>=12.3.0",
         "pyside6>=6.11.2",
-    ]
+]
+
+    [project.scripts]
+        debug = "imageprocessor.main:run"
 
     [project.gui-scripts]
         app = "imageprocessor.main:run"

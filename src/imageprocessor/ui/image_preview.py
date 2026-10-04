@@ -1,6 +1,8 @@
 from typing import Literal
 
 import numpy as np
+from PIL import Image
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QImage, QPixmap, Qt
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -20,16 +22,17 @@ type _ImageType = Literal["rgb", "rgba", "grayscale"]
 class ImagePreview(QWidget):
     """Widget for displaying an image preview."""
 
+    imageLoaded = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         layout = QVBoxLayout(self)
 
-        self._base_image: QPixmap | None = None  # Original Image
-        self._curr_image: QPixmap | None = None  # Current (Transformed) Image
+        self._base_image: np.ndarray | None = None  # Original Image
+        self._curr_image: np.ndarray | None = None  # Current (Transformed) Image
         self._image_type: _ImageType | None = None  # rgba/rgb/grayscale
-        self._dirty: bool = False  # Flag to indicate if the current image has been modified
 
         # =======================================
         # region: Image Display
@@ -63,58 +66,96 @@ class ImagePreview(QWidget):
         self._load_img_button.clicked.connect(self.onImageChange)
         control_layout.addWidget(self._load_img_button)
 
-        # Reset image to original
-        self._reset_img_button = QPushButton("Reset Image", self)
-        self._reset_img_button.clicked.connect(self.onImageReset)
-        control_layout.addWidget(self._reset_img_button)
+        # Save the current image
+        self._save_img_button = QPushButton("Save", self)
+        self._save_img_button.clicked.connect(self.onImageSave)
+        control_layout.addWidget(self._save_img_button)
+
         # endregion
         # =======================================
 
-    def onImageChange(self):
-        """Handle the event when the image is changed."""
-        # Show a dialog to select a new image file
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Image", dir="./imgs", filter="Images (*.png *.jpg *.jpeg *.bmp)"
-        )
-
-        # No image was active previously, meaning the "No image loaded" label was visible.
-        # Hide it and show the image view.
+    @property
+    def base_image(self) -> np.ndarray:
+        """Return the original image as a numpy array."""
         if self._base_image is None:
-            self._no_image_label.hide()
-            self._view.show()
+            raise ValueError("No image is currently loaded.")
 
-        if file_path:
-            # Load the new image and update the preview
-            self._base_image = QPixmap(file_path)
-            self._curr_image = self._base_image
-            self._view.setPixmap(self._curr_image)
+        return self._base_image
 
-    def onImageReset(self):
-        """Handle the event when the image is reset."""
+    @property
+    def curr_image(self) -> np.ndarray:
+        """Return the current image as a numpy array."""
+        if self._curr_image is None:
+            raise ValueError("No image is currently loaded.")
 
-        # Check if the current image is different from the base image
-        if self._dirty:
-            # Show a dialog with options to save, discard, or cancel the reset action
-            raise NotImplementedError("Reset confirmation dialog not implemented yet.")
+        return self._curr_image
 
-        # Reset the image preview to the original image
-        if self._base_image:
-            self._curr_image = self._base_image
-            self._dirty = False  # Reset the dirty flag
-            self._view.setPixmap(self._curr_image)
+    @curr_image.setter
+    def curr_image(self, image: np.ndarray):
+        """Set the current image to the provided numpy array.
 
-    def onImageTransformed(self, transformed_image: np.ndarray):
-        """Handle the event when the image is transformed."""
+        Args:
+            image: A numpy array representing the new image.
+        """
+
+        self._curr_image = image
 
         # Convert the transformed numpy array image to QPixmap
-        pixmap = self._convertToPixmap(transformed_image)
+        pixmap = self._convertToPixmap(image)
+        self._view.setPixmap(pixmap)
 
-        if pixmap:
-            self._curr_image = pixmap
-            self._view.setPixmap(self._curr_image)
-            self._dirty = True  # Mark the current image as modified
+    def onImageChange(self):
+        """Handle the event when the image is changed."""
 
-    def _convertToPixmap(self, image: np.ndarray):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Image",
+            dir="./imgs",
+            filter="Images (*.png *.jpg *.jpeg *.bmp)",
+        )
+
+        if not file_path:
+            return
+
+        self._base_image = np.array(Image.open(file_path))
+        self._curr_image = self._base_image.copy()
+
+        pixmap = self._convertToPixmap(self._base_image)
+        self._view.setPixmap(pixmap)
+
+        self._no_image_label.hide()
+        self._view.show()
+
+        self.imageLoaded.emit()  # Emit the signal to notify that a new image has been loaded
+
+    def onImageSave(self):
+        """Handle the event when the image is saved."""
+
+        if self._base_image is None or self._curr_image is None:
+            print("No image loaded. Cannot save.")
+            return
+
+        # Check if the current image is different from the base image
+        if np.array_equal(self._curr_image, self._base_image):
+            print("Current image is the same as the base image. No changes to save.")
+            return
+
+        # Show dialog to select save location and filename
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Image",
+            dir="./imgs",
+            filter="Images (*.png *.jpg *.jpeg *.bmp)",
+        )
+
+        print("Saving image to:", file_path)
+        if not file_path:
+            return
+
+        # Save the current image to the selected location
+        Image.fromarray(self._curr_image).save(file_path)
+
+    def _convertToPixmap(self, image: np.ndarray) -> QPixmap:
         """Convert a numpy array image to a QPixmap for display."""
 
         # Ensure the array is contiguous in memory
