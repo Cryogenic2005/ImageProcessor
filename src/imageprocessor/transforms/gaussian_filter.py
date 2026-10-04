@@ -17,7 +17,7 @@ class GaussianFilter(BaseTransform):
     def getFields(self):
         """Return the fields for the Gaussian filter."""
         return {
-            "kernel_size": Field[int](
+            "Kernel Size": Field[int](
                 field_type=int,
                 default=5,
                 min_val=1,
@@ -25,7 +25,7 @@ class GaussianFilter(BaseTransform):
                 description="The size of the kernel (must be an odd integer)",
                 tooltip="Kernel size",
             ),
-            "sigma": Field[float](
+            "Standard Deviation": Field[float](
                 field_type=float,
                 default=1.0,
                 min_val=0.0,
@@ -39,16 +39,22 @@ class GaussianFilter(BaseTransform):
         """Set the fields for the Gaussian filter."""
         for key, value in kwargs.items():
             match key:
-                case "kernel_size":
-                    self._kernel_size = int(value)
+                case "Kernel Size":
+                    value = int(value)
 
-                    if self._kernel_size % 2 == 0:
-                        raise ValueError("Kernel size must be an odd integer.")
-                case "sigma":
-                    self._sigma = float(value)
+                    if value < 1 or value % 2 == 0:
+                        raise ValueError("Kernel size must be a positive odd integer.")
 
-                    if self._sigma <= 0:
+                    self._kernel_size = value
+
+                case "Standard Deviation":
+                    value = float(value)
+
+                    if value <= 0:
                         raise ValueError("Sigma must be a positive float.")
+
+                    self._sigma = value
+
                 case _:
                     raise ValueError(f"Unknown field: {key}")
 

@@ -169,13 +169,19 @@ class ImagePreview(QWidget):
         match self._image_type:
             case "grayscale":
                 height, width = image.shape
-                qimage = QImage(image.data, width, height, QImage.Format.Format_Grayscale8)
+                qimage = QImage(
+                    image.data, width, height, image.strides[0], QImage.Format.Format_Grayscale8
+                )
             case "rgb":
                 height, width, _ = image.shape
-                qimage = QImage(image.data, width, height, QImage.Format.Format_RGB888)
+                qimage = QImage(
+                    image.data, width, height, image.strides[0], QImage.Format.Format_RGB888
+                )
             case "rgba":
                 height, width, _ = image.shape
-                qimage = QImage(image.data, width, height, QImage.Format.Format_RGBA8888)
+                qimage = QImage(
+                    image.data, width, height, image.strides[0], QImage.Format.Format_RGBA8888
+                )
 
         return QPixmap.fromImage(qimage.copy())
 
