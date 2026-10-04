@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .utils.zoomable_graphics_view import ZoomableGraphicsView
+from .zoomable_graphics_view import ZoomableGraphicsView
 
 type _ImageType = Literal["rgb", "rgba", "grayscale"]
 
@@ -64,12 +64,16 @@ class ImagePreview(QWidget):
         # Load new image from filepath/dropped image
         self._load_img_button = QPushButton("Change Image", self)
         self._load_img_button.clicked.connect(self.onImageChange)
-        control_layout.addWidget(self._load_img_button)
 
         # Save the current image
         self._save_img_button = QPushButton("Save", self)
         self._save_img_button.clicked.connect(self.onImageSave)
+
+        # Add and center the buttons in the layout
+        control_layout.addStretch()
+        control_layout.addWidget(self._load_img_button)
         control_layout.addWidget(self._save_img_button)
+        control_layout.addStretch()
 
         # endregion
         # =======================================
@@ -108,10 +112,7 @@ class ImagePreview(QWidget):
         """Handle the event when the image is changed."""
 
         file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Image",
-            dir="./imgs",
-            filter="Images (*.png *.jpg *.jpeg *.bmp)",
+            self, "Select Image", dir="./imgs", filter="Images (*.png *.jpg *.jpeg *.bmp)"
         )
 
         if not file_path:
@@ -142,10 +143,7 @@ class ImagePreview(QWidget):
 
         # Show dialog to select save location and filename
         file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Image",
-            dir="./imgs",
-            filter="Images (*.png *.jpg *.jpeg *.bmp)",
+            self, "Save Image", dir="./imgs", filter="Images (*.png *.jpg *.jpeg *.bmp)"
         )
 
         print("Saving image to:", file_path)
